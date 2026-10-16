@@ -12,7 +12,6 @@ Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_mediu
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/guides/sandbox-voice-agent&project-name=sandbox-voice-agent&repository-name=sandbox-voice-agent&env=LIVEKIT_API_KEY,LIVEKIT_API_SECRET,LIVEKIT_URL,NEXT_PUBLIC_USE_SANDBOX,AGENT_REPO_URL,AGENT_RUNTIME,SANDBOX_TIMEOUT&envDefaults=%7B%22NEXT_PUBLIC_USE_SANDBOX%22%3A%22true%22%2C%22AGENT_REPO_URL%22%3A%22https%3A%2F%2Fgithub.com%2Flivekit-examples%2Fagent-starter-python.git%22%2C%22AGENT_RUNTIME%22%3A%22python3.13%22%2C%22SANDBOX_TIMEOUT%22%3A%22600000%22%7D)
 
-
 ### Clone and Deploy
 
 You can clone just this directory using:
@@ -36,13 +35,11 @@ These steps describe the interaction flow between the user and the Live voice ag
 8. The user and agent communicate through LiveKit Cloud
 9. After 10 minutes (configurable), the sandbox expires automatically
 
-
 ## Prerequisites
 
 - Node.js 18+
 - Vercel account with Sandbox API access
 - LiveKit Cloud account ([sign up](https://cloud.livekit.io))
-
 
 ## Configure Environment Variables
 
@@ -57,7 +54,6 @@ vercel env pull
 Update the created `.env.local` with the remaining environment variables from `.env.example`
 
 For `LIVEKIT_API_KEY` , `LIVEKIT_API_SECRET` and `LIVEKIT_URL` , create a [Livekit cloud account](https://cloud.livekit.io/). Then, create a free project to get these values.
-
 
 ### 4. Run the Development Server
 
@@ -78,7 +74,6 @@ After deployment:
 1. Add all environment variables from `.env.local` to your Vercel project settings
 2. Ensure your Vercel account has Sandbox API access enabled
 3. The app will automatically use Vercel's OIDC token in production
-
 
 ## Project Structure
 

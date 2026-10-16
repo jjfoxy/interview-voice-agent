@@ -7,10 +7,7 @@ export async function GET(req: Request) {
   const sandboxId = searchParams.get('sandboxId');
 
   if (!sandboxId) {
-    return NextResponse.json(
-      { error: 'sandboxId parameter is required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'sandboxId parameter is required' }, { status: 400 });
   }
 
   const sandbox = sandboxManager.get(sandboxId);

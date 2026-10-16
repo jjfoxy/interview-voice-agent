@@ -1,15 +1,11 @@
 import { NextResponse } from 'next/server';
 import { Sandbox } from '@vercel/sandbox';
 import { sandboxManager } from '@/lib/sandbox-manager';
-import type {
-  CreateSandboxRequest,
-  CreateSandboxResponse,
-  SandboxInfo
-} from '@/types/sandbox';
+import type { CreateSandboxRequest, CreateSandboxResponse, SandboxInfo } from '@/types/sandbox';
 
 const DEFAULT_CONFIG = {
-  repoUrl: process.env.AGENT_REPO_URL ||
-    'https://github.com/livekit-examples/agent-starter-python.git',
+  repoUrl:
+    process.env.AGENT_REPO_URL || 'https://github.com/livekit-examples/agent-starter-python.git',
   runtime: (process.env.AGENT_RUNTIME as string) || 'python3.13',
   timeout: parseInt(process.env.SANDBOX_TIMEOUT || '600000', 10),
   vcpus: 4,
@@ -29,7 +25,8 @@ export async function POST(req: Request) {
         {
           success: false,
           error: 'LiveKit credentials not configured',
-          details: 'Please set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, ' +
+          details:
+            'Please set LIVEKIT_API_KEY, LIVEKIT_API_SECRET, ' +
             'and LIVEKIT_URL environment variables',
         } as CreateSandboxResponse,
         { status: 500 }
@@ -42,8 +39,8 @@ export async function POST(req: Request) {
       timeout: config.timeout,
     });
 
-    const roomName = body.roomName ||
-      `voice_agent_sandbox_${Math.random().toString(36).substring(7)}`;
+    const roomName =
+      body.roomName || `voice_agent_sandbox_${Math.random().toString(36).substring(7)}`;
 
     const sandboxInfo: SandboxInfo = {
       id: '',
@@ -61,10 +58,12 @@ export async function POST(req: Request) {
         source: {
           url: config.repoUrl,
           type: 'git',
-          ...(config.githubToken ? {
-            username: 'x-access-token',
-            password: config.githubToken,
-          } : {}),
+          ...(config.githubToken
+            ? {
+                username: 'x-access-token',
+                password: config.githubToken,
+              }
+            : {}),
         },
         runtime: config.runtime,
         resources: { vcpus: config.vcpus },
@@ -160,7 +159,7 @@ async function setupSandbox(
       } else {
         installCmd = {
           cmd: 'pip',
-          args: ['install', '--user', '-r', 'requirements.txt']
+          args: ['install', '--user', '-r', 'requirements.txt'],
         };
       }
     } else {
@@ -181,10 +180,7 @@ async function setupSandbox(
       await run('/vercel/runtimes/python/bin/pip3', ['install', '--upgrade', 'certifi']);
 
       updateStatus('installing', 'Downloading AI models');
-      await run('/vercel/runtimes/python/bin/python3', [
-        'src/agent.py',
-        'download-files'
-      ]);
+      await run('/vercel/runtimes/python/bin/python3', ['src/agent.py', 'download-files']);
     }
 
     updateStatus('starting', 'Starting voice agent');
@@ -195,14 +191,17 @@ async function setupSandbox(
       const hasSrcAgent = await run('test', ['-f', 'src/agent.py']);
       const pythonPath = '/vercel/runtimes/python/bin/python3';
 
-      agentCmd = hasSrcAgent.exitCode === 0
-        ? { cmd: pythonPath, args: ['src/agent.py', 'start'] }
-        : { cmd: pythonPath, args: ['agent.py', 'start'] };
+      agentCmd =
+        hasSrcAgent.exitCode === 0
+          ? { cmd: pythonPath, args: ['src/agent.py', 'start'] }
+          : { cmd: pythonPath, args: ['agent.py', 'start'] };
     } else {
       agentCmd = { cmd: 'node', args: ['agent.js'] };
     }
 
-    console.log(`[Sandbox ${sandboxId}] Starting agent: ${agentCmd.cmd} ${agentCmd.args.join(' ')}`);
+    console.log(
+      `[Sandbox ${sandboxId}] Starting agent: ${agentCmd.cmd} ${agentCmd.args.join(' ')}`
+    );
 
     await sandbox.runCommand({
       ...agentCmd,

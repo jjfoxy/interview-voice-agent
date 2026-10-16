@@ -28,10 +28,8 @@ const VOICE_QUOTES = [
   'The voice is a second face.',
   'Words mean more than what is set down on paper. ' +
     'It takes the human voice to infuse them with meaning.',
-  'A voice is a human gift; it should be cherished and used, ' +
-    'to utter fully human speech.',
-  'The most important things are the hardest to say, ' +
-    'because words diminish them.',
+  'A voice is a human gift; it should be cherished and used, ' + 'to utter fully human speech.',
+  'The most important things are the hardest to say, ' + 'because words diminish them.',
 ];
 
 const STATUS_MESSAGES: Record<SandboxCreationStatus, string> = {
@@ -163,9 +161,7 @@ export function useSandboxCreation() {
       let currentStatus: SandboxCreationStatus = 'creating';
 
       while (attempts < 60) {
-        const statusRes = await fetch(
-          `/api/sandbox/status?sandboxId=${sandboxId}`
-        );
+        const statusRes = await fetch(`/api/sandbox/status?sandboxId=${sandboxId}`);
 
         if (!statusRes.ok) {
           throw new Error(`Failed to check status: ${statusRes.statusText}`);
@@ -199,10 +195,13 @@ export function useSandboxCreation() {
           case 'ready':
             setStatus('ready');
             setSandbox(current);
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({
-              sandboxId: current.id,
-              timestamp: Date.now(),
-            }));
+            localStorage.setItem(
+              STORAGE_KEY,
+              JSON.stringify({
+                sandboxId: current.id,
+                timestamp: Date.now(),
+              })
+            );
             return current;
           case 'failed':
             throw new Error(current.error || 'Sandbox creation failed');
