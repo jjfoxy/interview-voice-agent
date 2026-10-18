@@ -77,7 +77,11 @@ export const WelcomeView = ({
   const lastConnectedSandboxRef = useRef<string | null>(null);
 
   const handleStartCall = async () => {
-    useVercelSandbox ? await createSandbox() : onStartCall();
+    if (useVercelSandbox) {
+      await createSandbox();
+    } else {
+      onStartCall();
+    }
   };
 
   useEffect(() => {

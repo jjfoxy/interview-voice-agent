@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { Sandbox } from '@vercel/sandbox';
 import { sandboxManager } from '@/lib/sandbox-manager';
 import type { CreateSandboxRequest, CreateSandboxResponse, SandboxInfo } from '@/types/sandbox';
@@ -76,9 +76,14 @@ export async function POST(req: Request) {
 
       console.log(`[Sandbox ${sandboxId}] Created successfully`);
 
-      setupSandbox(sandbox, sandboxId, config, sandboxInfo).catch((error) => {
-        console.error(`[Sandbox ${sandboxId}] Setup failed:`, error);
-        sandboxManager.updateStatus(sandboxId, 'failed', error.message);
+      after(async () => {
+        try {
+          await setupSandbox(sandbox, sandboxId, config, sandboxInfo);
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : 'Setup failed';
+          console.error(`[Sandbox ${sandboxId}] Setup failed:`, error);
+          sandboxManager.updateStatus(sandboxId, 'failed', msg);
+        }
       });
 
       return NextResponse.json({

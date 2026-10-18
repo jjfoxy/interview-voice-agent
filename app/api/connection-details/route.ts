@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AccessToken, type AccessTokenOptions, type VideoGrant } from 'livekit-server-sdk';
 import { RoomConfiguration } from '@livekit/protocol';
+import { Sandbox } from '@vercel/sandbox';
 import { sandboxManager } from '@/lib/sandbox-manager';
 
 type ConnectionDetails = {
@@ -43,9 +44,28 @@ export async function POST(req: Request) {
     if (USE_SANDBOX && sandboxId) {
       console.log(`[Connection Details] Checking sandbox ${sandboxId} status...`);
 
-      const sandbox = sandboxManager.get(sandboxId);
+      let sandbox = sandboxManager.get(sandboxId);
       if (!sandbox) {
-        throw new Error('Sandbox not found');
+        try {
+          const vercelSandbox = await Sandbox.get({ sandboxId });
+          if (vercelSandbox && vercelSandbox.status === 'running') {
+            sandbox = {
+              id: sandboxId,
+              status: 'ready',
+              roomName,
+              agentName: agentName || 'sandbox-agent',
+              createdAt: Date.now(),
+              expiresAt: Date.now() + (vercelSandbox.timeout || 600000),
+            };
+            sandboxManager.register(sandbox);
+          }
+        } catch (e) {
+          console.warn('[Connection Details] Could not query Vercel Sandbox API directly:', e);
+        }
+      }
+
+      if (!sandbox) {
+        throw new Error(`Sandbox '${sandboxId}' not found`);
       }
 
       // Check if sandbox is ready

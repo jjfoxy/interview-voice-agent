@@ -62,7 +62,15 @@ class SandboxManager {
   }
 }
 
-const sandboxManager = new SandboxManager();
+const globalForSandbox = globalThis as unknown as {
+  sandboxManager: SandboxManager | undefined;
+};
+
+const sandboxManager = globalForSandbox.sandboxManager ?? new SandboxManager();
+
+if (process.env.NODE_ENV !== 'production' || !globalForSandbox.sandboxManager) {
+  globalForSandbox.sandboxManager = sandboxManager;
+}
 
 if (typeof setInterval !== 'undefined') {
   setInterval(() => sandboxManager.cleanupExpired(), 5 * 60 * 1000);

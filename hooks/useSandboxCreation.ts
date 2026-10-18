@@ -148,12 +148,17 @@ export function useSandboxCreation() {
       });
 
       if (!createRes.ok) {
-        throw new Error(`Failed to create sandbox: ${createRes.statusText}`);
+        const createErr = await createRes.json().catch(() => ({}));
+        throw new Error(
+          createErr.error ||
+            createErr.details ||
+            `Failed to create sandbox: ${createRes.status} ${createRes.statusText}`.trim()
+        );
       }
 
       const createData = await createRes.json();
       if (!createData.success) {
-        throw new Error(createData.error || 'Failed to create sandbox');
+        throw new Error(createData.error || createData.details || 'Failed to create sandbox');
       }
 
       const sandboxId = createData.sandbox.id;
@@ -164,7 +169,12 @@ export function useSandboxCreation() {
         const statusRes = await fetch(`/api/sandbox/status?sandboxId=${sandboxId}`);
 
         if (!statusRes.ok) {
-          throw new Error(`Failed to check status: ${statusRes.statusText}`);
+          const statusErr = await statusRes.json().catch(() => ({}));
+          throw new Error(
+            statusErr.error ||
+              statusErr.details ||
+              `Failed to check status: ${statusRes.status} ${statusRes.statusText}`.trim()
+          );
         }
 
         const statusData = await statusRes.json();
