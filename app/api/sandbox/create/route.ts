@@ -42,11 +42,13 @@ export async function POST(req: Request) {
     const roomName =
       body.roomName || `voice_agent_sandbox_${Math.random().toString(36).substring(7)}`;
 
+    const defaultAgentName = process.env.LIVEKIT_AGENT_NAME || process.env.AGENT_NAME || 'my-agent';
+
     const sandboxInfo: SandboxInfo = {
       id: '',
       status: 'creating',
       roomName,
-      agentName: 'sandbox-agent',
+      agentName: defaultAgentName,
       createdAt: Date.now(),
       expiresAt: Date.now() + config.timeout,
     };
@@ -140,16 +142,25 @@ async function setupSandbox(
   const run = (cmd: string, args: string[], opts: Record<string, unknown> = {}) =>
     sandbox.runCommand({ cmd, args, ...opts });
 
-  const updateStatus = (status: string, msg: string) =>
+  const updateStatus = async (status: string, msg: string) => {
     sandboxManager.updateStatus(
       sandboxId,
       status as 'installing' | 'starting' | 'ready' | 'failed',
       undefined,
       msg
     );
+    try {
+      await sandbox.runCommand({
+        cmd: 'sh',
+        args: ['-c', `echo "${status}:${msg}" > /tmp/agent-status.txt`],
+      });
+    } catch {
+      // Ignore file write errors if sandbox is shutting down
+    }
+  };
 
   try {
-    updateStatus('installing', 'Setting up environment');
+    await updateStatus('installing', 'Setting up environment');
 
     await run('ls', ['-la']);
 
@@ -171,7 +182,7 @@ async function setupSandbox(
       installCmd = { cmd: 'npm', args: ['install'] };
     }
 
-    updateStatus('installing', 'Installing dependencies');
+    await updateStatus('installing', 'Installing dependencies');
 
     const install = await run(installCmd.cmd, installCmd.args);
     if (install.exitCode !== 0) {
@@ -181,14 +192,14 @@ async function setupSandbox(
     console.log(`[Sandbox ${sandboxId}] Dependencies installed`);
 
     if (config.runtime === 'python3.13') {
-      updateStatus('installing', 'Configuring SSL certificates');
+      await updateStatus('installing', 'Configuring SSL certificates');
       await run('/vercel/runtimes/python/bin/pip3', ['install', '--upgrade', 'certifi']);
 
-      updateStatus('installing', 'Downloading AI models');
+      await updateStatus('installing', 'Downloading AI models');
       await run('/vercel/runtimes/python/bin/python3', ['src/agent.py', 'download-files']);
     }
 
-    updateStatus('starting', 'Starting voice agent');
+    await updateStatus('starting', 'Starting voice agent');
 
     let agentCmd: { cmd: string; args: string[] };
 
@@ -208,15 +219,19 @@ async function setupSandbox(
       `[Sandbox ${sandboxId}] Starting agent: ${agentCmd.cmd} ${agentCmd.args.join(' ')}`
     );
 
+    const agentName = sandboxInfo.agentName || process.env.LIVEKIT_AGENT_NAME || 'my-agent';
+
     await sandbox.runCommand({
-      ...agentCmd,
-      detached: true,
+      cmd: 'sh',
+      args: ['-c', `${agentCmd.cmd} ${agentCmd.args.join(' ')} > /tmp/agent.log 2>&1 &`],
       env: {
         LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY!,
         LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET!,
         LIVEKIT_URL: process.env.LIVEKIT_URL!,
-        LIVEKIT_AGENT_NAME: sandboxInfo.agentName || 'sandbox-agent',
+        LIVEKIT_AGENT_NAME: agentName,
         OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+        GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || '',
+        DEEPGRAM_API_KEY: process.env.DEEPGRAM_API_KEY || '',
         ASSEMBLYAI_API_KEY: process.env.ASSEMBLYAI_API_KEY || '',
         CARTESIA_API_KEY: process.env.CARTESIA_API_KEY || '',
         PYTHONPATH: '/home/vercel-sandbox/.local/lib/python3.13/site-packages',
@@ -224,12 +239,23 @@ async function setupSandbox(
       },
     });
 
-    updateStatus('ready', 'Agent is ready');
+    // Wait 3 seconds to ensure agent process boots and connects
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+
+    await updateStatus('ready', 'Agent is ready');
     console.log(`[Sandbox ${sandboxId}] Agent started successfully`);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`[Sandbox ${sandboxId}] Setup failed:`, error);
     sandboxManager.updateStatus(sandboxId, 'failed', errorMessage);
+    try {
+      await sandbox.runCommand({
+        cmd: 'sh',
+        args: ['-c', `echo "failed:${errorMessage.replace(/"/g, '\\"')}" > /tmp/agent-status.txt`],
+      });
+    } catch {
+      // Ignore
+    }
     throw error;
   }
 }

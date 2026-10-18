@@ -36,7 +36,11 @@ export async function POST(req: Request) {
 
     // Parse agent configuration from request body
     const body = await req.json();
-    const agentName: string = body?.room_config?.agents?.[0]?.agent_name;
+    const configuredAgentName =
+      body?.room_config?.agents?.[0]?.agent_name ||
+      process.env.LIVEKIT_AGENT_NAME ||
+      process.env.AGENT_NAME;
+    const defaultAgentName = configuredAgentName || 'my-agent';
     const sandboxId: string | undefined = body?.sandboxId;
     const roomName: string | undefined = body?.roomName;
 
@@ -53,7 +57,7 @@ export async function POST(req: Request) {
               id: sandboxId,
               status: 'ready',
               roomName,
-              agentName: agentName || 'sandbox-agent',
+              agentName: defaultAgentName,
               createdAt: Date.now(),
               expiresAt: Date.now() + (vercelSandbox.timeout || 600000),
             };
@@ -87,7 +91,7 @@ export async function POST(req: Request) {
       const participantToken = await createParticipantToken(
         { identity: participantIdentity, name: participantName },
         finalRoomName,
-        sandbox.agentName || agentName
+        sandbox.agentName || defaultAgentName
       );
 
       // Return connection details with sandbox info
@@ -113,7 +117,7 @@ export async function POST(req: Request) {
     const participantToken = await createParticipantToken(
       { identity: participantIdentity, name: participantName },
       finalRoomName,
-      agentName
+      configuredAgentName
     );
 
     // Return connection details
